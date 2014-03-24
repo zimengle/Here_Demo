@@ -1,6 +1,8 @@
 package com.baidu.fex.here;
 
 
+import java.util.List;
+
 import com.baidu.fex.here.GalleryFragment.Model;
 import com.baidu.fex.here.GalleryFragment.OnGalleryItemClickListener;
 
@@ -28,16 +30,21 @@ public class GalleryActivity extends FragmentActivity {
 		GalleryFragment fragment = GalleryFragment.create(null);
 		fragment.setOnGalleryItemClickListener(new OnGalleryItemClickListener() {
 			
-			public void onGalleryItemClick(Model model) {
-				GalleryFragment fragment = GalleryFragment.create(model.getId());
+			public void onGalleryItemClick(List<Model> list, int selected) {
+				final String id = list.get(selected).getId();
+				GalleryFragment fragment = GalleryFragment.create(id);
+				
 				fragment.setOnGalleryItemClickListener(new OnGalleryItemClickListener() {
 					
-					public void onGalleryItemClick(Model model) {
-						CameraActivity.open(GalleryActivity.this, model.getId());
+
+					public void onGalleryItemClick(List<Model> list,
+							int selected) {
+						GalleryDetailActivity.open(GalleryActivity.this,list.get(selected).getRid(),selected );
 						
 					}
 				});
 				switeFragment(fragment, "detail");
+				
 			}
 		});
 		switeFragment(fragment, null);

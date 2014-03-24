@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.sql.SQLException;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.baidu.fex.here.camera.CameraPreview;
 import com.baidu.fex.here.camera.ResizableCameraPreview;
 import com.baidu.fex.here.dao.DataBaseHelper;
@@ -22,6 +24,10 @@ import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
 import android.net.Uri;
@@ -38,7 +44,7 @@ import android.widget.RelativeLayout.LayoutParams;
 import android.widget.Toast;
 
 public class CameraActivity extends Activity implements OnClickListener,
-		PreviewCallback, BDLocationListener {
+		PreviewCallback, BDLocationListener,SensorEventListener  {
 
 	public static final String PARAM_PID = "PARAM_PID";
 
@@ -49,6 +55,9 @@ public class CameraActivity extends Activity implements OnClickListener,
 	private BDLocation bdLocation;
 	private DataBaseHelper dataBaseHelper;
 	private String pid;
+	private float[] sensor;
+	private SensorManager mSensorManager;
+	private Sensor mAccelerometer;
 
 	public static void open(Context context, String pid) {
 		Intent intent = new Intent(context, CameraActivity.class);
@@ -63,6 +72,8 @@ public class CameraActivity extends Activity implements OnClickListener,
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+		mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 		pid = getIntent().getStringExtra(PARAM_PID);
 		dataBaseHelper = new DataBaseHelper(this);
 		locationClient = Utils.getLocation(this);
@@ -96,6 +107,7 @@ public class CameraActivity extends Activity implements OnClickListener,
 		super.onResume();
 		locationClient.start();
 		createCameraPreview();
+		mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
 	}
 
 	@Override
@@ -105,6 +117,8 @@ public class CameraActivity extends Activity implements OnClickListener,
 		mPreview.stop();
 		mLayout.removeView(mPreview);
 		mPreview = null;
+		locationClient.stop();
+		mSensorManager.unregisterListener(this);
 	}
 
 	private void createCameraPreview() {
@@ -161,7 +175,7 @@ public class CameraActivity extends Activity implements OnClickListener,
 		
 		
 		Intent intent = new Intent(this, CameraConfirmActivity.class);
-		intent.putExtra(CameraConfirmActivity.PARAM_PICTURE, Picture.createPicture(this,bdLocation, file, pid));
+		intent.putExtra(CameraConfirmActivity.PARAM_PICTURE, Picture.createPicture(this,bdLocation,sensor, file, pid));
 		startActivityForResult(intent,REQ_CONFIRM);
 
 	}
@@ -205,6 +219,16 @@ public class CameraActivity extends Activity implements OnClickListener,
 			break;
 		}
 		return super.onKeyUp(keyCode, event);
+	}
+
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void onSensorChanged(SensorEvent event) {
+		sensor = event.values;
+		
 	}
 
 }

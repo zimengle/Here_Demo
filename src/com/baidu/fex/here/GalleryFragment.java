@@ -39,14 +39,13 @@ public class GalleryFragment extends Fragment implements OnItemClickListener{
 	}
 	
 	public static interface OnGalleryItemClickListener{
-		public void onGalleryItemClick(Model model);
+		public void onGalleryItemClick(List<Model> list, int selected);
 	}
 	
 	private List<Model> list = new ArrayList<Model>();
 
 	private GalleryAdapter adapter;
 
-	private DataBaseHelper dataBaseHelper;
 	
 	private OnGalleryItemClickListener onGalleryItemClickListener;
 	
@@ -62,7 +61,6 @@ public class GalleryFragment extends Fragment implements OnItemClickListener{
 	public void onCreate(Bundle savedInstanceState) {
 		// TODO Auto-generated method stub
 		super.onCreate(savedInstanceState);
-		dataBaseHelper = new DataBaseHelper(getActivity());
 		rootId = getArguments().getString(PARAM_ROOT_ID);
 
 	}
@@ -81,25 +79,19 @@ public class GalleryFragment extends Fragment implements OnItemClickListener{
 		// TODO Auto-generated method stub
 		super.onResume();
 		list.clear();
-		
 		try {
-			Where<Picture, String> where = null;
-			if(rootId == null){
-				where = dataBaseHelper.getPictureDao().queryBuilder().where().isNull(Picture.COLUMN_RID);
-			}else{
-				list.add(Model.toModel(dataBaseHelper.getPictureDao().queryForId(rootId)));
-				where = dataBaseHelper.getPictureDao().queryBuilder().where().eq(Picture.COLUMN_RID, rootId);
-			}
-			List<Picture> results = where.query();
-			for(Picture picture : results){
-				
+			for(Picture picture : Picture.findPictureByPid(getActivity(), rootId)){
 				list.add(Model.toModel(picture));
 			}
+			
 			adapter.notifyDataSetChanged();
-		} catch (SQLException e1) {
+		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			e.printStackTrace();
 		}
+		
+			
+		
 	}
 
 	@Override
@@ -124,10 +116,13 @@ public class GalleryFragment extends Fragment implements OnItemClickListener{
 		private String url;
 
 		private String datetime;
+		
+		private String rid;
 
-		public Model(String id, String url, long datetime) {
+		public Model(String id,String rid, String url, long datetime) {
 			super();
 			url = Picture.toUriString(url);
+			this.rid = rid;
 			this.id = id;
 			this.url = url;
 			this.datetime = myFmt1.format(new Date(datetime));
@@ -145,8 +140,16 @@ public class GalleryFragment extends Fragment implements OnItemClickListener{
 			return datetime;
 		}
 		
+		public String getRid() {
+			return rid;
+		}
+		
 		public static Model toModel(Picture picture){
-			return new Model(picture.getId(), picture.getUrl(), picture.getDatetime());
+			String rid = null;
+			if(picture.getRoot() != null){
+				rid = picture.getRoot().getId();
+			}
+			return new Model(picture.getId(),rid, picture.getUrl(), picture.getDatetime());
 		}
 		
 
@@ -219,7 +222,7 @@ public class GalleryFragment extends Fragment implements OnItemClickListener{
 	public void onItemClick(AdapterView<?> parent, View view, int position,
 			long id) {
 		if(onGalleryItemClickListener != null){
-			onGalleryItemClickListener.onGalleryItemClick(list.get(position));
+			onGalleryItemClickListener.onGalleryItemClick(list,position);
 		}
 
 	}
